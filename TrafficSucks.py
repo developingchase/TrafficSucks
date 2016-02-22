@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 #Chase's Traffic Sucks App
-#Testing an update
 
 import requests
 import json
@@ -86,7 +85,6 @@ def main(argv):
 				'traffic_model': traffic_model,
 				'units': units
 			}
-			#print payload
 			r = requests.get(traffic_api_url, params=payload)
 			#print r.url
 			#print r.text
@@ -97,9 +95,6 @@ def main(argv):
 			if data['status'] != "OK":
 				print ('There was an error from Google\'s API. Please try again.')
 				sys.exit()
-			#print data
-			#print data['origin_addresses']
-			#print data['destination_addresses']
 			#getsgoofy parsing deep arrays; there has to be a better way to do this
 			current = 0
 
@@ -110,6 +105,8 @@ def main(argv):
 					curelement = currow['elements'][currow_ctr]
 					#print curelement
 					traveldtg = time.strftime('%A at %H:%M',  time.gmtime(departure_time))
+					travelday = time.strftime('%A', time.gmtime(departure_time))
+					travelhour = time.strftime('%H:%M', time.gmtime(departure_time))
 					#Calc the delta
 					curdelta = curelement['duration_in_traffic']['value'] - curelement['duration']['value']
 					master.append([
@@ -123,7 +120,9 @@ def main(argv):
 						curelement['distance']['text'],
 						curelement['distance']['value'],
 						ptm,
-						curdelta
+						curdelta,
+						travelday,
+						travelhour
 						])
 					currow_ctr += 1
 				current += 1
@@ -153,7 +152,7 @@ def main(argv):
 		count += 1
 		if count == 31: #Cap the queries
 			days_stillgoing = False
-	#print master
+	#db connection
 	conn = sqlite3.connect('TrafficSucks.db')
 	c = conn.cursor()
 	sessionid = sessionid_gen()
@@ -170,8 +169,9 @@ def main(argv):
 		print_dist_val = disp_rows[8]
 		print_ptm = str(disp_rows[9])
 		print_delta = str(disp_rows[10])
-		#print "When traveling on ", print_traveltime.strip()," from ", print_origin.strip(), " to " , print_dest.strip(), ", Google estimates it will take between ",print_timebest.strip()," and ",print_timetraffic.strip(),", over a distance of ",print_dist.strip()," (",print_ptm.strip(),", delta: ", print_delta.strip(),")."
-		c.execute('insert into trafficlogs(origin,destination,traveldtg,duration_text,duration_value,duration_in_traffic_text,duration_in_traffic_value,distance_text,distance_value,ptm,sessionid) values (?,?,?,?,?,?,?,?,?,?,?)',(print_origin,print_dest,print_traveltime,print_timebest,print_timebest_val,print_timetraffic,print_timetraffic_val,print_dist,print_dist_val,print_ptm,sessionid))
+		print_travelday = str(disp_rows[11])
+		print_travelhour = str(disp_rows[12])
+		c.execute('insert into trafficlogs(origin,destination,traveldtg,duration_text,duration_value,duration_in_traffic_text,duration_in_traffic_value,distance_text,distance_value,ptm,sessionid,travelday,traveltime) values (?,?,?,?,?,?,?,?,?,?,?,?,?)',(print_origin,print_dest,print_traveltime,print_timebest,print_timebest_val,print_timetraffic,print_timetraffic_val,print_dist,print_dist_val,print_ptm,sessionid,print_travelday,print_travelhour))
 	#This sorts master, currently by the fastest duration_in_traffic value
 		conn.commit()
 	conn.close()
