@@ -5,4 +5,4 @@ You will need a Google Developer API key for this Python script to work. Visit: 
 
 For documentation on the Google Maps Distance API, visit: https://developers.google.com/maps/documentation/distance-matrix/intro
 
-Usage: python2 TrafficSucks.py -k <Google API Key - Required> -o <Origin(s)> -d <Destination>
+Usage: python2 TrafficSucks.py -k (Google API Key - Required) -o (Origin(s)) -d (Destination)
