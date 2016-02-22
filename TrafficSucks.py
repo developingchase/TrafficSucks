@@ -9,6 +9,13 @@ import datetime
 import sys
 import getopt
 import time
+import sqlite3
+import string
+import random
+
+#creates a random 24 char sessionid to track the DB instances
+def sessionid_gen(size=24, chars=string.ascii_uppercase + string.digits):
+	return ''.join(random.choice(chars) for _ in range(size))
 
 def main(argv):
 	traffic_api_url = 'https://maps.googleapis.com/maps/api/distancematrix/json'
@@ -64,7 +71,7 @@ def main(argv):
 		departure_time = int((datetime.datetime(2016,dt_mon,dt_day,dt_hr,dt_min) - datetime.datetime(1970,1,1)).total_seconds())
 
 		##LOOP THROUGH traffic_model
-		poss_traffic_models = ['best_guess','pessimistic'] #could include 'optomistic' but I'm not, so...
+		poss_traffic_models = ['best_guess','pessimistic'] #could include 'optimistic' but I'm not, so...
 
 		for ptm in poss_traffic_models:
 			traffic_model = ptm
@@ -90,9 +97,12 @@ def main(argv):
 			if data['status'] != "OK":
 				print ('There was an error from Google\'s API. Please try again.')
 				sys.exit()
-			#print data
+			print data
+			print data['origin_addresses']
+			print data['destination_addresses']
 			#getsgoofy parsing deep arrays; there has to be a better way to do this
 			current = 0
+
 			while current < len(data['rows']):
 				currow = data['rows'][current]
 				currow_ctr = 0
@@ -104,7 +114,7 @@ def main(argv):
 					curdelta = curelement['duration_in_traffic']['value'] - curelement['duration']['value']
 					master.append([
 						data['origin_addresses'][current],
-						data['destination_addresses'][current],
+						data['destination_addresses'][0],
 						traveldtg,
 						curelement['duration']['text'],
 						curelement['duration']['value'],
@@ -141,22 +151,30 @@ def main(argv):
 		#dt_hr = 8
 		#dt_min = 00
 		count += 1
-		if count == 10: #Cap the queries
+		if count == 2: #Cap the queries
 			days_stillgoing = False
 	#print master
+	conn = sqlite3.connect('TrafficSucks.db')
+	c = conn.cursor()
+	sessionid = sessionid_gen()
 
 	for disp_rows in master:
 		print_traveltime = str(disp_rows[2])
 		print_origin = str(disp_rows[0])
 		print_dest = str(disp_rows[1])
 		print_timebest = str(disp_rows[3])
+		print_timebest_val = disp_rows[4]
 		print_timetraffic = str(disp_rows[5])
+		print_timetraffic_val = disp_rows[6]
 		print_dist = str(disp_rows[7])
+		print_dist_val = disp_rows[8]
 		print_ptm = str(disp_rows[9])
 		print_delta = str(disp_rows[10])
 		print "When traveling on ", print_traveltime.strip()," from ", print_origin.strip(), " to " , print_dest.strip(), ", Google estimates it will take between ",print_timebest.strip()," and ",print_timetraffic.strip(),", over a distance of ",print_dist.strip()," (",print_ptm.strip(),", delta: ", print_delta.strip(),")."
-
+		c.execute('insert into trafficlogs(origin,destination,traveldtg,duration_text,duration_value,duration_in_traffic_text,duration_in_traffic_value,distance_text,distance_value,ptm,sessionid) values (?,?,?,?,?,?,?,?,?,?,?)',(print_origin,print_dest,print_traveltime,print_timebest,print_timebest_val,print_timetraffic,print_timetraffic_val,print_dist,print_dist_val,print_ptm,sessionid))
 	#This sorts master, currently by the fastest duration_in_traffic value
+		conn.commit()
+	conn.close()
 	def getkey(item):
 		return item[6]
 	master_fastest = sorted(master, key=getkey)
