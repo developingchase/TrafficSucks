@@ -67,7 +67,7 @@ def main(argv):
 	dt_min = 00
 
 	while days_stillgoing: 	
-		print dt_hr, ":", dt_min
+		#print dt_hr, ":", dt_min
 		departure_time = int((datetime.datetime(2016,dt_mon,dt_day,dt_hr,dt_min) - datetime.datetime(1970,1,1)).total_seconds())
 
 		##LOOP THROUGH traffic_model
@@ -97,9 +97,9 @@ def main(argv):
 			if data['status'] != "OK":
 				print ('There was an error from Google\'s API. Please try again.')
 				sys.exit()
-			print data
-			print data['origin_addresses']
-			print data['destination_addresses']
+			#print data
+			#print data['origin_addresses']
+			#print data['destination_addresses']
 			#getsgoofy parsing deep arrays; there has to be a better way to do this
 			current = 0
 
@@ -136,8 +136,8 @@ def main(argv):
 			dt_hr += 1
 
 		if workweek:
-			if (dt_hr - dt_starthr) == 2: #We've gone our 5 rounds
-				if (dt_day - dt_startday) == 5: #we've done five days, and all the hours on the 5th day
+			if (dt_hr - dt_starthr) == 3: #We've gone our 5 rounds
+				if (dt_day - dt_startday) == 4: #we've done five days, and all the hours on the 5th day
 					days_stillgoing = False
 				else:
 					dt_day = dt_day +1
@@ -151,7 +151,7 @@ def main(argv):
 		#dt_hr = 8
 		#dt_min = 00
 		count += 1
-		if count == 2: #Cap the queries
+		if count == 31: #Cap the queries
 			days_stillgoing = False
 	#print master
 	conn = sqlite3.connect('TrafficSucks.db')
@@ -170,15 +170,12 @@ def main(argv):
 		print_dist_val = disp_rows[8]
 		print_ptm = str(disp_rows[9])
 		print_delta = str(disp_rows[10])
-		print "When traveling on ", print_traveltime.strip()," from ", print_origin.strip(), " to " , print_dest.strip(), ", Google estimates it will take between ",print_timebest.strip()," and ",print_timetraffic.strip(),", over a distance of ",print_dist.strip()," (",print_ptm.strip(),", delta: ", print_delta.strip(),")."
+		#print "When traveling on ", print_traveltime.strip()," from ", print_origin.strip(), " to " , print_dest.strip(), ", Google estimates it will take between ",print_timebest.strip()," and ",print_timetraffic.strip(),", over a distance of ",print_dist.strip()," (",print_ptm.strip(),", delta: ", print_delta.strip(),")."
 		c.execute('insert into trafficlogs(origin,destination,traveldtg,duration_text,duration_value,duration_in_traffic_text,duration_in_traffic_value,distance_text,distance_value,ptm,sessionid) values (?,?,?,?,?,?,?,?,?,?,?)',(print_origin,print_dest,print_traveltime,print_timebest,print_timebest_val,print_timetraffic,print_timetraffic_val,print_dist,print_dist_val,print_ptm,sessionid))
 	#This sorts master, currently by the fastest duration_in_traffic value
 		conn.commit()
 	conn.close()
-	def getkey(item):
-		return item[6]
-	master_fastest = sorted(master, key=getkey)
-	#print master_fastest[0]
+	print "Results completed. Your unique session id to reference the results is: ",sessionid,". Please review the DB for more information."
 
 if __name__ == "__main__":
 	main (sys.argv[1:])
